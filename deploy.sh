@@ -13,9 +13,12 @@ echo "[1/7] Updating system packages..."
 sudo apt-get update
 sudo apt-get upgrade -y
 
-# Install Python and pip
+# Install Python and pip (nginx only if not installed)
 echo "[2/7] Installing Python and dependencies..."
-sudo apt-get install -y python3 python3-pip python3-venv nginx
+sudo apt-get install -y python3 python3-pip python3-venv
+if ! command -v nginx &> /dev/null; then
+    sudo apt-get install -y nginx
+fi
 
 # Create application directory
 echo "[3/7] Setting up application directory..."
@@ -67,11 +70,12 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# Configure Nginx
+# Configure Nginx (only if not already configured)
 echo "[7/7] Configuring Nginx..."
-sudo tee /etc/nginx/sites-available/info-collector > /dev/null <<EOF
+if [ ! -f "/etc/nginx/sites-available/info-collector" ]; then
+    sudo tee /etc/nginx/sites-available/info-collector > /dev/null <<EOF
 server {
-    listen 80;
+    listen 3000;
     server_name _;
 
     location / {
@@ -84,19 +88,25 @@ server {
 }
 EOF
 
-# Enable Nginx site
-sudo ln -sf /etc/nginx/sites-available/info-collector /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-
-# Test Nginx configuration
-sudo nginx -t
+    # Enable Nginx site (don't remove default)
+    sudo ln -sf /etc/nginx/sites-available/info-collector /etc/nginx/sites-enabled/
+    
+    # Test Nginx configuration
+    sudo nginx -t
+    
+    # Reload Nginx if it's running
+    if systemctl is-active --quiet nginx; then
+        sudo systemctl reload nginx
+    fi
+else
+    echo "Nginx config already exists, skipping..."
+fi
 
 # Reload systemd and start services
 echo "Starting services..."
 sudo systemctl daemon-reload
 sudo systemctl enable info-collector
 sudo systemctl restart info-collector
-sudo systemctl restart nginx
 
 # Get server IP
 SERVER_IP=$(curl -s ifconfig.me || curl -s icanhazip.com || curl -s ipinfo.io/ip)
@@ -107,12 +117,12 @@ echo "DEPLOYMENT COMPLETE!"
 echo "=========================================="
 echo ""
 echo "Server IP: $SERVER_IP"
-echo "Your link: http://$SERVER_IP"
+echo "Your link: http://$SERVER_IP:3000"
 echo ""
 echo "Service Status:"
 echo "  Check: sudo systemctl status info-collector"
 echo "  Logs:  sudo journalctl -u info-collector -f"
-echo "  View data: http://$SERVER_IP/view"
+echo "  View data: http://$SERVER_IP:3000/view"
 echo ""
 echo "=========================================="
 
