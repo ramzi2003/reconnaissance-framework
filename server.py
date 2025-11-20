@@ -144,15 +144,18 @@ if __name__ == '__main__':
     print(f"\nTo view collected data: http://YOUR_IP/view")
     print("="*80 + "\n")
     
+    # Get port from environment or use default
+    port = int(os.environ.get('PORT', 5000))
+    
     # Use production WSGI server in production
     if not debug_mode:
         try:
             from waitress import serve
             print("Using Waitress production server...")
-            serve(app, host='0.0.0.0', port=5000)
+            serve(app, host='0.0.0.0', port=port)
         except ImportError:
             print("Waitress not installed, using Flask dev server (not recommended for production)")
-            app.run(host='0.0.0.0', port=5000, debug=False)
+            app.run(host='0.0.0.0', port=port, debug=False)
     else:
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(host='0.0.0.0', port=port, debug=True)
 

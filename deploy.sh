@@ -8,16 +8,16 @@ echo "=========================================="
 echo "DigitalOcean Deployment Script"
 echo "=========================================="
 
-# Update system
+# Update system (continue even if fails)
 echo "[1/7] Updating system packages..."
-sudo apt-get update
-sudo apt-get upgrade -y
+sudo apt-get update || true
+sudo apt-get upgrade -y || true
 
 # Install Python and pip (nginx only if not installed)
 echo "[2/7] Installing Python and dependencies..."
-sudo apt-get install -y python3 python3-pip python3-venv
+sudo apt-get install -y python3 python3-pip python3-venv || echo "Python already installed or install failed"
 if ! command -v nginx &> /dev/null; then
-    sudo apt-get install -y nginx
+    sudo apt-get install -y nginx || echo "Nginx install failed, may already be installed"
 fi
 
 # Create application directory
@@ -70,37 +70,10 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# Configure Nginx (only if not already configured)
-echo "[7/7] Configuring Nginx..."
-if [ ! -f "/etc/nginx/sites-available/info-collector" ]; then
-    sudo tee /etc/nginx/sites-available/info-collector > /dev/null <<EOF
-server {
-    listen 3000;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF
-
-    # Enable Nginx site (don't remove default)
-    sudo ln -sf /etc/nginx/sites-available/info-collector /etc/nginx/sites-enabled/
-    
-    # Test Nginx configuration
-    sudo nginx -t
-    
-    # Reload Nginx if it's running
-    if systemctl is-active --quiet nginx; then
-        sudo systemctl reload nginx
-    fi
-else
-    echo "Nginx config already exists, skipping..."
-fi
+# Configure to run on port 3000 directly (skip nginx if not available)
+echo "[7/7] Configuring service..."
+# Service will run on port 3000 directly
+export PORT=3000
 
 # Reload systemd and start services
 echo "Starting services..."
