@@ -157,6 +157,8 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                    'User-Agent': 'Mozilla/5.0 (compatible; SecurityBot/1.0)'
                 },
                 body: JSON.stringify(data)
             })
